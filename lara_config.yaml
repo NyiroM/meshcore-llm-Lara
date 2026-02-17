@@ -20,7 +20,7 @@ nodes:
 
 node_test:
   timeout_seconds: 8
-  message: "Másiköd próba: Mondj egy viccet!"
+  message: "AI Teszt: Csinálj egy rövid újabb vicsot, amit a webappban látok majd!"
   direction: "a_to_b"  # options: a_to_b or b_to_a (who sends -> who receives)
   allow_public_forwarding: false
 

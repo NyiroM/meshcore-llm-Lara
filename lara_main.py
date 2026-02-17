@@ -18,7 +18,17 @@ import sys
 import os
 import signal
 import threading
-from typing import Optional, List
+import hashlib
+from typing import Optional, List, Tuple
+
+# Try to import meshcore library for async sends (fallback to CLI if failing)
+try:
+    from meshcore import MeshCore, EventType
+    HAS_MESHCORE_LIB = True
+except ImportError:
+    HAS_MESHCORE_LIB = False
+    logger_temp = logging.getLogger("LaraMain")
+    logger_temp.warning("meshcore library not available — will use CLI-based sends (may fail on Windows)")
 
 # -------------------------
 # Config
@@ -126,9 +136,16 @@ class LaraApp:
         self.memory = []
         self.monitor_proc: Optional[subprocess.Popen] = None
 
-        # defaults
+        # Determine port and node_name: check for active_instance first, fallback to radio config
         self.default_port = str(self.radio_cfg.get('port', 'COM4'))
         self.node_name = str(self.radio_cfg.get('node_name', 'Enomee'))
+        nodes = cfg.get('nodes', {})
+        for node_key, node_data in nodes.items():
+            if isinstance(node_data, dict) and node_data.get('active_instance', False):
+                self.default_port = str(node_data.get('port', self.default_port))
+                self.node_name = str(node_data.get('name', self.node_name))
+                logger.info(f"✅ Active instance: node '{node_key}' ({self.node_name}) on port {self.default_port}")
+                break
         # Prefer human-friendly room name (radio.room_name) for interactive sends,
         # fallback to pubkey (room_name) for library/fallback; can also be manually overridden
         self.room_name_friendly = str(self.radio_cfg.get('radio.room_name', '')) or str(self.radio_cfg.get('room_name', ''))
@@ -187,6 +204,95 @@ class LaraApp:
         return None
 
     # -------------------------
+    # LIBRARY-BASED ASYNC ROOM SEND (Windows-safe)
+    # -------------------------
+    async def send_room_message_async(self, text: str) -> bool:
+        """
+        Send room message using meshcore Python library (async, no interactive CLI).
+        This avoids Windows console errors from prompt_toolkit.
+        """
+        if not HAS_MESHCORE_LIB:
+            logger.warning("meshcore library not available — returning False.")
+            return False
+
+        if not self.radio_enabled:
+            logger.info("📡 Radio disabled by config — skipping send.")
+            return True
+
+        text = _sanitize_text(text)
+        if not text:
+            logger.warning("⚠️ Empty message — not sending.")
+            return False
+
+        port = str(self.default_port)
+        room_pubkey = str(self.room_name)
+        room_key = str(self.radio_cfg.get('room_key', ''))
+
+        try:
+            logger.debug(f"🔗 Connecting to MeshCore on port {port}...")
+            mesh = await MeshCore.create_serial(port)
+
+            # Fetch contacts
+            contacts_res = await mesh.commands.get_contacts()
+            if contacts_res.type == EventType.ERROR:
+                logger.error(f"get_contacts failed: {contacts_res.payload}")
+                await mesh.disconnect()
+                return False
+
+            contacts = contacts_res.payload or {}
+            logger.debug(f"Found {len(contacts)} contacts")
+
+            # Find room object by pubkey
+            room_obj = contacts.get(room_pubkey)
+            if not room_obj:
+                logger.error(f"Room with pubkey {room_pubkey[:16]}... not found in contacts.")
+                await mesh.disconnect()
+                return False
+
+            logger.debug(f"Target room: {room_obj.get('adv_name', 'Unknown')}")
+
+            # Set channel key if provided
+            if room_key:
+                secret16 = hashlib.sha256(room_key.encode('utf-8')).digest()[:16]
+                logger.debug("Setting channel with derived secret...")
+                set_res = await mesh.commands.set_channel(1, room_pubkey, secret16)
+                if set_res.type == EventType.ERROR:
+                    logger.error(f"set_channel failed: {set_res.payload}")
+                    await mesh.disconnect()
+                    return False
+                await asyncio.sleep(0.35)
+
+            # Send message chunks
+            chunks = _byte_chunk_text(text, self.chunk_bytes)
+            for i, chunk in enumerate(chunks, 1):
+                logger.debug(f"📤 Sending chunk {i}/{len(chunks)}: {chunk[:50]}...")
+                send_res = await mesh.commands.send_msg(room_obj, chunk)
+                if send_res.type == EventType.ERROR:
+                    logger.error(f"send_msg chunk {i} failed: {send_res.payload}")
+                    await mesh.disconnect()
+                    return False
+                await asyncio.sleep(0.2)
+
+            await mesh.disconnect()
+            logger.info("✅ Message sent successfully via library.")
+            return True
+
+        except Exception as e:
+            logger.error(f"❌ Library send failed: {e}")
+            return False
+
+    def send_room_message_sync_wrapper(self, text: str) -> bool:
+        """
+        Synchronous wrapper for the async send_room_message_async.
+        """
+        try:
+            result = asyncio.run(self.send_room_message_async(text))
+            return result
+        except Exception as e:
+            logger.error(f"❌ Async wrapper error: {e}")
+            return False
+
+    # -------------------------
     # INTERACTIVE SEND (binary pipes)
     # -------------------------
     def send_to_room(self, text: str, timeout: float = 25.0) -> bool:
@@ -201,6 +307,7 @@ class LaraApp:
         # if radio is disabled by config, skip any interactive sends
         if not self.radio_enabled:
             logger.info("📡 Radio disabled by config — skipping send.")
+
             return True
 
         # Use friendly room name if available, else pubkey
@@ -426,7 +533,7 @@ class LaraApp:
             return False
 
     def send_message(self, text: str) -> bool:
-        """Try interactive send first, then fallback to library if interactive fails.
+        """Try library-based send first (Windows-safe), fallback to interactive CLI.
 
         If `radio.enabled` is false in config, short-circuit and do not transmit.
         """
@@ -434,11 +541,21 @@ class LaraApp:
             logger.info("📡 Radio disabled by config — not sending message.")
             return True
 
+        # Try library-based send first (Windows-safe, no console issues)
+        if HAS_MESHCORE_LIB:
+            logger.debug("📚 Trying library-based room send...")
+            ok = self.send_room_message_sync_wrapper(text)
+            if ok:
+                return True
+            logger.warning("⚠️ Library send failed — trying interactive CLI fallback...")
+
+        # Fallback to interactive CLI
         ok = self.send_to_room(text)
         if ok:
             return True
-        logger.info("⚠️ Interaktív küldés sikertelen — próbálkozás library fallback-del.")
-        return self.send_via_library(text)
+
+        logger.error("❌ All send methods failed.")
+        return False
 
     def send_reply_to_sender(self, text: str, sender: str) -> bool:
         """
@@ -492,13 +609,14 @@ class LaraApp:
                 return False
 
             try:
-                # Build commands to reply to sender (PRIV message via 'to <sender>')
+                # Build commands to reply to sender (PRIV message via 'to <sender>' + quoted message)
                 cmd_lines = [f"to {sender}"]
                 
                 for idx, ch_text in enumerate(chunks, start=1):
                     logger.info(f"📡 Válasz küldés {sender}-nek chunk {idx}/{len(chunks)}: {ch_text[:80]}")
-                    # For PRIV messages, we use raw send (no quote prefix)
-                    cmd_lines.append(ch_text)
+                    # For PRIV messages after 'to <sender>', use quoted format (same as room)
+                    # meshcore-cli will interpret this as a message to the selected contact
+                    cmd_lines.append(f'"{ch_text}')
                 
                 cmd_lines.append("quit")
                 
@@ -570,32 +688,38 @@ class LaraApp:
     def monitor_loop(self):
         self._start_monitor()
         if not self.monitor_proc:
-            logger.error("❌ Monitor nem indítható — kilépés.")
+            logger.error("❌ Monitor indítható — kilépés.")
             return
 
         try:
             # read binary lines and decode per-line
+            logger.info("📡 Monitor loop started, listening for messages...")
             while self.running:
                 try:
                     raw = self.monitor_proc.stdout.readline()
-                except Exception:
+                except Exception as e:
+                    logger.error(f"Error reading from monitor: {e}")
                     raw = b""
                 if not raw:
+                    # logger.debug("No data from monitor")
                     time.sleep(0.05)
                     continue
                 try:
                     line = raw.decode('utf-8', errors='replace').strip()
-                except Exception:
+                except Exception as e:
+                    logger.error(f"Decode error: {e}")
                     line = ""
                 if not line:
                     continue
+                logger.debug(f"Monitor raw line: {line[:200]}")
                 if not line.startswith('{'):
                     logger.debug(f"Non-JSON monitor line: {line[:200]}")
                     continue
                 try:
                     data = json.loads(line)
-                except json.JSONDecodeError:
-                    logger.debug("JSON decode hiba — átugorva a sor.")
+                    logger.debug(f"Parsed JSON: {data}")
+                except json.JSONDecodeError as e:
+                    logger.error(f"JSON decode error: {e} for line: {line[:200]}")
                     continue
 
                 if "text" in data:
@@ -631,13 +755,10 @@ class LaraApp:
                             logger.error(f"AI feldolgozási hiba: {e}")
                             resp = None
                         if resp:
-                            # ✅ Send reply directly to sender (PRIV message)
-                            if self.bot_cfg.get('reply_to_all', False):
-                                ok = self.send_reply_to_sender(resp, sender)
-                                logger.info(f"📡 AI válasz {sender}-nek elküldve: {ok}")
-                            else:
-                                ok = self.send_message(resp)
-                                logger.info(f"📡 AI válasz roomba elküldve: {ok}")
+                            # ✅ Send AI response to room (both sides see it)
+                            # Note: Using room send instead of PRIV (Windows CLI limitations)
+                            ok = self.send_message(resp)
+                            logger.info(f"📡 AI válasz a roomba küldve: {ok}")
         except KeyboardInterrupt:
             logger.info("⚠️ Monitor: KeyboardInterrupt.")
         except Exception as e:
@@ -694,16 +815,19 @@ class LaraApp:
                     logger.warning(f"Set channel parancs futtatása sikertelen: {e}")
                 time.sleep(1.0)
 
-            logger.info("🧪 Indítási teszt üzenet generálása...")
-            test_prompt = "how are you?"
-            test_resp = self.call_ai(test_prompt)
-            if test_resp:
-                ok = self.send_message(test_resp)
-                logger.info(f"Teszt küldés eredménye: {ok}")
-            else:
-                logger.warning("Teszt AI hívás nem adott választ — továbbmegyünk a monitorra.")
+            # Note: Disabled startup test send due to Windows interactive CLI issues.
+            # Monitor will listen for actual incoming messages instead.
+            # logger.info("🧪 Indítási teszt üzenet generálása...")
+            # test_prompt = "how are you?"
+            # test_resp = self.call_ai(test_prompt)
+            # if test_resp:
+            #     ok = self.send_message(test_resp)
+            #     logger.info(f"Teszt küldés eredménye: {ok}")
+            # else:
+            #     logger.warning("Teszt AI hívás nem adott választ — továbbmegyünk a monitorra.")
 
             self.running = True
+            logger.info("🚀 Starting monitor loop (waiting for incoming messages)...")
             self.monitor_loop()
 
         except KeyboardInterrupt:

@@ -1,0 +1,192 @@
+# Lara CLI Interface - Projekt Haladás (2026-02-17)
+
+## 🎯 Fő Célkitűzés
+AI feedback loop implementálása MeshCore üzenetkenél. **Status: ~85% kész**
+
+---
+
+## ✅ Lezárult Feladatok
+
+### 1. Node-to-Node PRIV Kommunikáció (STABIL ✅)
+- **Probléma megoldva**: Üzenetek nem látszódtak a webappban mert `get_msg()` után rögtön olvastunk (törlés)
+- **Megoldás**: `send_only_test.py` - csak küldés, nincs olvasás utána
+- **Validáció**: 2026-02-17 12:35-12:36 tesztüzenetek megjelentek mindkét webappban
+- **Kód**: [send_only_test.py](send_only_test.py) (működik A↔B mindkét irányban)
+
+### 2. AI API Integráció (KÉSZ ✅)
+- **API**: `http://127.0.0.1:8080/api/chat/completions` (OpenWebUI/Ollama)
+- **Model**: `mistral-nemolatest`
+- **Válaszidő**: ~3.4 másodperc (tesztelt 2026-02-17 13:14:39)
+- **Kód**: [test_ai_debug.py](test_ai_debug.py) - sikeres API tesztelés
+- **Integrálva**: [lara_main.py](lara_main.py) `call_ai()` függvényben (723 sor)
+
+### 3. Monitor Loop (MŰKÖDIK ✅)
+- **Input**: `meshcore-cli -j -s <port> ms` (JSON message stream)
+- **Feldolgozás**: 
+  - JSON parse → pubkey_prefix kinyerés
+  - Sender lookup az `lara_config.yaml`-ból
+  - AI függvényhívás
+  - Válasz küldés
+- **Kód**: [lara_main.py](lara_main.py) `monitor_loop()` (653-676 sor)
+
+### 4. Sender Rezolúció (MŰKÖDIK ✅)
+- **Mechanizmus**: `pubkey_prefix` → node név lookup
+- **Config**: [lara_config.yaml](lara_config.yaml) `nodes.*.pubkey` alapján
+- **Kód**: [lara_main.py](lara_main.py) 601-615 sor
+
+### 5. GitHub Commit (KÉSZ ✅)
+- **ID**: 511d12f (2026-02-17 ~13:30)
+- **Fájlok**: 15 módosított, 2906 sor hozzáadva
+- **Tartalom**: AI integráció, monitor, küldés logika
+
+---
+
+## 🔄 Jelenleg Tesztelés Alatt
+
+### AI Feedback Loop Üzenetküldés (AKTÍV TESZTELÉS)
+
+**Mik működik:**
+- ✅ Üzenet küldés Node A → Node B (`send_only_test.py`)
+- ✅ AI API hívás és válaszgenerálás (`call_ai()`)
+- ✅ Monitor loop fogad üzeneteket
+- ✅ Szoba-alapú válaszküldés infrastruktúra (`send_to_room()`)
+
+**Amit Várunk (MOST TESZT ALATT):**
+- 🔄 Üzenet megjelenése Node B webappba (Node A-ról)
+- 🔄 AI válasz generálása szobán belül
+- 🔄 AI válasz megjelenése mindkét webappban
+
+**Legutóbbi Teszt (2026-02-17 14:21:15):**
+```
+[SEND-ONLY] Message: "AI Teszt: Csinálj egy rövid újabb vicsot, amit a webappban látok majd!"
+[SEND-ONLY] Result: ✅ Message sent successfully (type: EventType.MSG_SENT)
+[SEND-ONLY] *** NOT reading receiver inbox - message should remain for webapp ***
+```
+
+**Következő Lépés**: 
+- Ellenőrizni a Node B monitoring processz outputját
+- Megnézni, hogy az üzenet megérkezett-e és teljesítette-e az AI válaszgenerálást
+
+---
+
+## ⚠️ Ismert Korlátozások (Architecture Szint)
+
+### Windows Subprocess Limitation
+- **Probléma**: Interactive `meshcore-cli` nem futhat Windows subprocess pipeben (prompt_toolkit error)
+- **Hiba**: `prompt_toolkit.output.win32.NoConsoleScreenBufferError: No Windows console found`
+- **Teszt**: [test_send_priv_direct.py](test_send_priv_direct.py) - sikertelen
+- **Megoldás**: PRIV válaszok helyett **szoba-alapú válaszok** (Room messages)
+
+### Üzenetláthatósági Aszimmetria (VIZSGÁLAT ALATT)
+- **Megfigyelés**: Enomee B látja a "Másiköd próba" üzenetet, de Enomee nem
+- **Státusz**: Diagnosztikai fázis - webhook/router vizsgálat szükséges lehet
+- **Hatás**: AI válaszokra valószínűleg nincs hatása (szoba üzenetek persistent)
+
+---
+
+## 📁 Kritikus Fájlok Referenciája
+
+| Fájl | Cél | Status |
+|------|-----|--------|
+| [lara_main.py](lara_main.py) | Fő AI monitor + küldő | ✅ Működik |
+| [lara_config.yaml](lara_config.yaml) | Konfigurálás (port, AI, node lista) | ✅ Szerkesztve |
+| [send_only_test.py](send_only_test.py) | Tiszta PRIV küldés (teszteléshez) | ✅ Működik |
+| [test_ai_debug.py](test_ai_debug.py) | API validálás | ✅ Működik (3.4s válasz) |
+| [meshcore_send.py](meshcore_send.py) | Library wrapper (async) | ✅ Send-only módva módosítva |
+| [test_send_priv_direct.py](test_send_priv_direct.py) | PRIV debug (Windows limitation) | ❌ Nem működik |
+
+---
+
+## 🔧 Lara_main.py Funkciók Térképe
+
+```python
+def call_ai(user_text):
+    # HTTP POST OpenWebUI-hoz, memory buffer, 45s timeout
+    # Input: üzenet szöveg
+    # Output: AI válasz szöveg
+    
+def send_message(text):
+    # szoba-alapú küldés (send_to_room)
+    # Windows-safe, interactive CLI wrapper-rel
+    
+def monitor_loop():
+    # meshcore-cli ms JSON output feldolgozás
+    # pubkey_prefix → node név lookup
+    # AI hívás + válaszküldés
+    
+def _start_monitor():
+    # subprocess indítása meshcore-cli-vel
+```
+
+---
+
+## 📋 Az AI Feedback Loop Folyamata (Célállapot)
+
+```
+1. User sends message (send_only_test.py)
+   ↓
+2. Node B receives in inbox (meshcore-cli ms JSON)
+   ↓
+3. Monitor loop parses pubkey_prefix
+   ↓
+4. lara_main.py calls call_ai() with message
+   ↓
+5. AI generates response (OpenWebUI, ~3.4s)
+   ↓
+6. lara_main.py sends response to room (send_to_room)
+   ↓
+7. Both webapps show AI response in room
+```
+
+**Jelenlegi Állapot**: 1-5 működik, 6-7 alatt tesztelés
+
+---
+
+## 🚀 Diagnózis Checklist (JELENLEG)
+
+- [ ] Ellenőrizni: AI üzenet megérkezett Node B-hez?
+- [ ] Ellenőrizni: Monitor loop aktiválódott?
+- [ ] Ellenőrizni: AI válasz generálódott?
+- [ ] Ellenőrizni: Válasz elküldődött szobára?
+- [ ] Ellenőrizni: Válasz megjelent mindkét webappban?
+
+---
+
+## 🔄 Mentési Pont Információ
+
+**Utolsó működő állapot**:
+- Node B Process ID: 14552, 23872 (2026-02-17 14:16:18 indult)
+- `lara_main.py` futás: `Start-Process -NoNewWindow -RedirectStandardOutput lara_main.log`
+- Config üzenet: `"AI Teszt: Csinálj egy rövid újabb vicsot, amit a webappban látok majd!"`
+- Git commit: 511d12f (teljes AI integráció)
+
+**Friss Sessziónál Kezdési Parancsok**:
+```powershell
+# 1. Ellenőrizni process-eket
+Get-Process | Where-Object {$_.ProcessName -eq "python"}
+
+# 2. lara_main.py elindítása (ha szükséges)
+Start-Process -NoNewWindow -RedirectStandardOutput lara_main.log -FilePath .venv\Scripts\python -ArgumentList "lara_main.py"
+
+# 3. Üzenet küldése
+.venv\Scripts\python send_only_test.py
+
+# 4. Várakozás + ellenőrzés
+Start-Sleep -Seconds 5
+# → Webapp ellenőrzés
+```
+
+---
+
+## 📝 Megjegyzések a Folytatáshoz
+
+1. **Context Window**: Ez a fájl felváltja a hosszú conversation-summary-t friss sessionokhoz
+2. **Problémamegoldás**: Ha hiba lép fel, az eddigi diagnózist lásd a kritikus fájloknál
+3. **AI Integráció**: Az utolsó ismeretlen volt az, hogy Node B webappja látja-e az AI válaszokat
+4. **következő Iteráció**: Ha sikeres, akkor próbálhatunk kétirányú AI konverzáció tesztelhetünk
+
+---
+
+**Utolsó Frissítés:** 2026-02-17 14:21:15
+**Felhasználó**: M
+**Repository Path**: `e:\Users\M\Documents\llm-meshcore-interface\lara-cli-interface`
