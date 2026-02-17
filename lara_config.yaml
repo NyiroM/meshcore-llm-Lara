@@ -1,0 +1,44 @@
+radio:
+  radio.port: COM4
+  port: "COM4"
+  baud: 115200
+  room_name: "0d620201e419cef0ec99f9dfa88afbdd56d2aa35df20c632f265af11244b0654"
+  radio.room_name: HU-PE-CsömörÓfalu
+  node_name: "Enomee"
+  room_key: "qwertz20"
+ 
+nodes:
+  node_a:
+    name: "Enomee"
+    port: "COM4"
+    pubkey: "e7c354a9913b7b5087fd7aaca016276c746326bba69e757172171a9ba5e63da1"
+  node_b:
+    name: "Enomee B"
+    port: "COM6"
+    pubkey: "0d620201e419cef0ec99f9dfa88afbdd56d2aa35df20c632f265af11244b0654"
+    active_instance: true  # This is the current lara_main.py running here
+
+node_test:
+  timeout_seconds: 8
+  message: "Másiköd próba: Mondj egy viccet!"
+  direction: "a_to_b"  # options: a_to_b or b_to_a (who sends -> who receives)
+  allow_public_forwarding: false
+
+ai:
+  api_url: "http://127.0.0.1:8080/api/chat/completions"
+  # A teljes, hosszú JWT kódod ide kerüljön idézőjelek közé:
+  api_key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjdhNTljM2VlLWViN2QtNDIzMi05NTFlLTc0MGU2ZGVkODVjMiIsImV4cCI6MTc3MjUzMDM4NywianRpIjoiNTc4NzI5YmMtNTNiZS00YjA2LWEzMGQtZjE1MTllN2NhNjZjIn0.2IwXwXR0oSUoZo6oI8jJ0_vDNxWjNfX7fDPMg3EsJz8"
+  model_id: "mistral-nemolatest-tuds-nlkl"
+  memory_limit: 20
+  bot_behavior: chunk_bytes
+
+bot_behavior:
+  active: true
+  reply_to_all: true  # ✅ Send AI responses directly to message sender (PRIV)
+  chunk_size: 200
+
+network:
+  ws_port: 8765
+
+system:
+  log_level: "INFO"

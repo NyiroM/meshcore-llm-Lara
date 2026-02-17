@@ -1,0 +1,15 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"chat.tools.terminal.autoApprove": {
+			".venv\\Scripts\\python": true,
+			"Get-Process": true,
+			"meshcore-cli": true,
+			"Tee-Object": true
+		}
+	}
+}
