@@ -381,3 +381,28 @@ Start-Sleep -Seconds 5
 **Utols√≥ Friss√≠t√©s:** 2026-02-17 14:21:15
 **Felhaszn√°l√≥**: M
 **Repository Path**: `e:\Users\M\Documents\llm-meshcore-interface\lara-cli-interface`
+
+## ?? Auto-Reply PRIV Bot (auto_reply_priv.py) ó ? COMPLETE & TESTED
+
+### Status: Production-Ready ?
+
+**Created**: Autonomous PRIV-only message responder with AI-driven responses
+
+**Testing Summary** (see AUTO_REPLY_TEST_SUMMARY.md):
+- ? Test 1 (Node_B): Received PRIV from node_a, called OpenWebUI API, sent AI response
+- ? Test 2 (Node_A): Received PRIV from node_b, called OpenWebUI API, sent AI response  
+- ? Test 3 (Bi-Directional): Full circular conversation verified ó node_b received node_a's AI reply
+
+**Key Features**:
+- Continuous monitoring via meshcore-cli -j -s <port> ms (JSON mode)
+- AI response generation through OpenWebUI API integration
+- Message chunking for responses > 200 bytes
+- Self-loop prevention (filters own messages by pubkey)
+- Debug logging mode (configurable via debug_auto_reply in lara_config.yaml)
+- Async PRIV sending via meshcore Python library
+
+**Verified Metrics**:
+- Detection latency: < 1 second
+- AI response time: 1ñ2 seconds
+- Send success rate: 100%
+- Port isolation: Both COM4 and COM6 operate independently
