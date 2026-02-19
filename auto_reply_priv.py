@@ -362,9 +362,12 @@ class AutoReplyBot:
         self.chunk_chars = int(self.bot_cfg.get("chunk_chars", 145))
         self.max_chunks = int(self.bot_cfg.get("max_chunks", 3))
         self.debug_mode = bool(self.bot_cfg.get("debug_auto_reply", False))
+        self.simulate_metadata = bool(self.bot_cfg.get("simulate_metadata", False))
         self.use_streaming = bool(self.ai_cfg.get("streaming", True))
         if self.debug_mode:
             logging.getLogger().setLevel(logging.DEBUG)
+        if self.simulate_metadata:
+            logger.warning("🧪 METADATA SIMULATION MODE ENABLED - Random RSSI/SNR/hops will be added to messages")
 
         # Graceful shutdown handlers
         try:
@@ -2107,6 +2110,17 @@ class AutoReplyBot:
                 metadata['hop_count'] = hop_count
             if hop_start is not None:
                 metadata['hop_start'] = hop_start
+
+            # SIMULATION MODE: Generate random metadata for testing
+            if self.simulate_metadata and not metadata:
+                import random
+                metadata = {
+                    'rssi': random.randint(-95, -40),
+                    'snr': random.randint(0, 15),
+                    'hop_count': random.randint(0, 5),
+                    'hop_start': 5
+                }
+                logger.warning(f"🧪 SIMULATED METADATA: {metadata}")
 
             logger.info(f"✉️  QUEUED: Incoming PRIV from [{sender_name or sender_pubkey_prefix}]")
             if metadata:

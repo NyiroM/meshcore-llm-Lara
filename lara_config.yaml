@@ -50,6 +50,7 @@ bot_behavior:
   chunk_chars: 145  # Max chars per message (5 chars reserved for " X/Y" numbering)
   max_chunks: 3  # Max chunks an AI response can be split into
   debug_auto_reply: true
+  simulate_metadata: false  # TEST MODE: Add random RSSI/SNR/hops to messages for testing
   allow_self_processing: true  # Enable for circular AI conversations
   circular_max_iterations: 3  # Max AI responses in loop
   # Library mode with persistent connection (RECOMMENDED - keeps serial port open)
