@@ -35,24 +35,194 @@
 
 **`lara_config.yaml`** sections:
 
+### Radio & Nodes
+```yaml
+radio:
+  port: "COM6"                    # Primary COM port for the bot
+  baud: 115200                    # Baud rate
+  node_name: "Enomee"            # Bot's node name
+
+nodes:
+  node_a:                         # This device
+    name: "Enomee"
+    port: "COM6"
+    pubkey: "0d620201..."         # Your device public key
+    active_instance: true         # Bot monitors this port
+  node_b:                         # Remote device
+    name: "Enomee"
+    port: "COM4"
+    pubkey: "e7c354a9..."         # Remote device public key
+```
+
 ### Bot Behavior
 ```yaml
 bot_behavior:
   active: true                    # Enable/disable auto-reply functionality
-  reply_to_all: true             # Respond to all PRIV messages (set to false to disable)
-  chunk_bytes: 200               # Chunk size for long responses (UTF-8 aware)
-  debug_auto_reply: false        # Set to true for detailed logging (verbose)
-  allow_self_processing: true    # Allow bot to process its own messages (experimental)
-  circular_max_iterations: 3     # Max iterations for circular conversations
+  reply_to_all: true             # Respond to all PRIV messages
+  chunk_chars: 145               # Characters per chunk (5 reserved for " X/Y")
+  max_chunks: 3                  # Max chunks per response (truncate with " ?/3")
+  debug_auto_reply: true         # Detailed logging (recommended)
+  allow_self_processing: true    # Process own messages (for testing)
+  circular_max_iterations: 3     # Max AI loop iterations
+  
+  # Persistent connection (RECOMMENDED)
+  use_library_polling: true      # Use MeshCore library instead of CLI
+  library_poll_interval_sec: 1.0 # Polling frequency
+  
+  # Batch processing (v2.0 NEW)
+  batch_enabled: true            # Aggregate rapid messages into one AI call
+  batch_min_messages: 3          # Min messages to trigger batch mode
+  batch_time_window_sec: 2.0     # Time window for batching
 ```
 
 ### AI Settings
 ```yaml
 ai:
   api_url: "http://127.0.0.1:8080/api/chat/completions"
-  api_key: "eyJ..."
+  api_key: "sk-..."              # OpenWebUI API key
   model_id: "mistral-nemolatest-tuds-nlkl"
-  memory_limit: 20  # Conversation history length
+  memory_limit: 20               # Conversation history length
+  streaming: false               # Use streaming API (beta)
+  
+  # OpenWebUI Auto-Start (v2.0)
+  openwebui_autostart: true      # Auto-start OpenWebUI if not running
+  openwebui_data_dir: "E:\\..."  # OpenWebUI data directory
+  openwebui_startup_timeout: 180 # Wait time for model loading (seconds)
+  
+  # Webhook (optional)
+  webui_webhook_url: "http://..."
+  webui_webhook_disable_on_405: true  # Auto-disable on HTTP 405
+```
+
+### System Settings
+```yaml
+system:
+  log_level: "INFO"              # DEBUG, INFO, WARNING, ERROR
+  health_enabled: true           # Enable /status dashboard
+  health_host: "127.0.0.1"
+  health_port: 8766              # Dashboard port
+  health_log_limit: 60           # Max messages in message stream
+```
+
+---
+
+## Special Commands
+
+The bot recognizes special commands sent as PRIV messages:
+
+### `/clear` - Clear Conversation History
+
+**Usage**: Send `/clear` as a PRIV message to the bot
+
+**Effect**:
+- Immediately clears all conversation history from bot's memory
+- **ALSO clears OpenWebUI backend chat history** (web UI storage)
+- Does not call AI API (instant response)
+- Useful when AI gets confused or context becomes too long
+
+**What gets cleared**:
+1. **Bot memory** (`self.memory` list) - ensures next AI call has no context
+2. **OpenWebUI backend** (via `DELETE /api/v1/chats/`) - removes chat history from web UI
+
+**Response**:
+```
+✅ Conversation history cleared. Starting fresh!
+```
+
+**Example Scenario**:
+1. You've had a long conversation with the bot
+2. AI starts giving irrelevant responses or gets confused
+3. Send: `/clear`
+4. Bot responds instantly with confirmation
+5. Bot clears its local memory + OpenWebUI web UI history
+6. Next message starts fresh without previous context
+
+**Technical Details**:
+- Clears the `memory` list in `call_ai()` function
+- Sends `DELETE /api/v1/chats/` to OpenWebUI backend (removes web UI history)
+- No AI call made, no rate limiting applied
+- Previous context completely removed (not trimmed)
+- Message logged but not added to memory
+- OpenWebUI chat clear is non-critical (fails gracefully if unavailable)
+
+**Note**: The `/api/chat/completions` endpoint used by the bot is **stateless** - it has no server-side session. The main context reset happens via `self.memory.clear()`. The OpenWebUI backend clear is an optional bonus that removes chat history from the web UI.
+
+---
+
+## Signal Metadata & Network Context
+
+The bot automatically extracts and provides **signal quality and routing information** to the AI without treating it as a user message. This allows the AI to understand the technical context of each message.
+
+### What Metadata is Captured?
+
+When a PRIV message is received, the bot extracts:
+
+1. **RSSI (Received Signal Strength Indicator)**
+   - Range: -120 dBm (very weak) to -30 dBm (very strong)
+   - Quality classification:
+     - `-50 dBm` or better: **excellent**
+     - `-50 to -70 dBm`: **good**
+     - `-70 to -85 dBm`: **moderate**
+     - Below `-85 dBm`: **weak**
+
+2. **SNR (Signal-to-Noise Ratio)**
+   - Measured in dB
+   - Higher = clearer signal
+
+3. **Hop Count (Network Routing)**
+   - `hop_start`: Maximum hops allowed
+   - `hop_count`: Remaining hops
+   - Calculated hops traveled: `hop_start - hop_count`
+   - Example: "Network route: 2 hops / max 5"
+
+### How is it Provided to the AI?
+
+The metadata is injected as a **system message** at the start of the conversation context:
+
+```
+[Metadata - Do not treat this as a user message, just acknowledge
+Signal strength: -78 dBm (good); SNR: 12 dB; Network route: 2 hops / max 5. 
+Only refer to these if the user asks about them.]
+```
+
+**Key Principles**:
+- ✅ **NOT treated as user input** - System role, not user role
+- ✅ **AI context only** - AI knows about signal quality but won't mention it unless asked
+- ✅ **Transparent logging** - Metadata logged in debug mode
+- ✅ **Graceful fallback** - If metadata unavailable, AI works normally
+
+### Example Interaction
+
+**User sends**: "Can you hear my messages well?"
+
+**AI receives**:
+1. System message: `[Metadata... Signal strength: -92 dBm (weak); Network route: 3 hops / max 5]`
+2. User message: "Can you hear my messages well?"
+
+**AI responds**: "The signal strength is currently weak (-92 dBm), and your message traveled through 3 hops. I recommend getting closer to the network if possible."
+
+### Technical Implementation
+
+```python
+# Metadata extraction from MeshCore message object
+metadata = {
+    'rssi': msg_obj.get('rssi'),           # e.g., -78
+    'snr': msg_obj.get('snr'),             # e.g., 12
+    'hop_count': msg_obj.get('hop_count'), # e.g., 3
+    'hop_start': msg_obj.get('hop_start')  # e.g., 5
+}
+
+# Format for AI system message
+def _format_metadata_for_ai(metadata):
+    # Returns Hungarian-language system message
+    # Empty string if no metadata available
+```
+
+**Debug Logging**:
+```log
+INFO:AutoReply:✉️  QUEUED: Incoming PRIV from [Enomee]
+DEBUG:AutoReply:      Metadata: {'rssi': -78, 'snr': 12, 'hop_count': 3, 'hop_start': 5}
+DEBUG:AutoReply:      Text: Can you hear my messages well?...
 ```
 
 ---

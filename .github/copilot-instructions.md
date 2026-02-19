@@ -31,9 +31,9 @@ Short, actionable guidance for AI coding agents working in this repository.
   - `python lara_main.py`
   - or `python lara_cli_bridge.py`
 - Send one-off message via the library-backed script:
-  - `python meshcore_send.py -p COM4 --room "ROOM_OR_PUBKEY" -m "Hello"`
+  - `python meshcore_send.py -p COM6 --room "ROOM_OR_PUBKEY" -m "Hello"`
 - Debug serial link with proxy logger:
-  - `python serial_proxy_logger.py --phys COM4 --virt COM7 --log serial.log`
+  - `python serial_proxy_logger.py --phys COM6 --virt COM7 --log serial.log`
 
 ## Editing guidance and examples
 - Config-first: when changing behavior, prefer adding config keys to `lara_config.yaml` and read them in the scripts: e.g. change chunk size via `bot_behavior.chunk_size` or `bot_behavior.chunk_bytes`.

@@ -1,0 +1,30 @@
+{
+    "folders": [
+        {
+            "path": ".github"
+        },
+        {
+            "path": ".venv"
+        }
+    ],
+    "settings": {
+        "chat.tools.terminal.autoApprove": {
+            "/^cd e:\\\\Users\\\\M\\\\Documents\\\\llm-meshcore-interface\\\\lara-cli-interface ; python -m py_compile auto_reply_priv\\.py$/": {
+                "approve": true,
+                "matchCommandLine": true
+            },
+            "/^python -m py_compile auto_reply_priv\\.py ; if \\(\\$\\?\\) \\{ echo \"✅ Szintaxis OK\" \\}$/": {
+                "approve": true,
+                "matchCommandLine": true
+            },
+            "/^python -m py_compile auto_reply_priv\\.py ; if \\(\\$\\?\\) \\{ echo \"✅ Szintaxis OK - Graceful Degradation\" \\}$/": {
+                "approve": true,
+                "matchCommandLine": true
+            },
+            "/^python -m py_compile auto_reply_priv\\.py ; if \\(\\$\\?\\) \\{ echo \"✅ Szintaxis OK - Queue Intelligence\" \\}$/": {
+                "approve": true,
+                "matchCommandLine": true
+            }
+        }
+    }
+}
