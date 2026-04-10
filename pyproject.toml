@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=65.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "meshcore-llm-lara"
+version = "0.1.0"
+description = "AI-powered MeshCore PRIV message bot with OpenWebUI integration."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [ { name = "ZionBurns" } ]
+classifiers = [
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Topic :: Communications :: Chat",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+]
+dependencies = [
+    "PyYAML==6.0.3",
+    "requests==2.32.5",
+    "meshcore==2.2.13",
+    "pyserial==3.5",
+]
+
+[project.scripts]
+lara = "auto_reply_priv:main"

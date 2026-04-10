@@ -54,6 +54,10 @@ This repository contains the Lara CLI interface for MeshCore, including an AI-dr
    ```powershell
    pip install -r requirements.txt
    ```
+   Optional: install the package locally for command-line execution:
+   ```powershell
+   pip install -e .
+   ```
 
 3. Configure `lara_config.yaml`:
    - `radio.port` - your MeshCore COM port (default: COM6)
@@ -63,19 +67,36 @@ This repository contains the Lara CLI interface for MeshCore, including an AI-dr
 
 > During testing, this project was validated using the `gemma4` model together with RAG handling. In principle, any AI model that Ollama supports through OpenWebUI can be used.
 
+## Development and testing
+
+Install development dependencies:
+```powershell
+pip install -r requirements-dev.txt
+```
+
+Run the test suite:
+```powershell
+pytest -q
+```
+
 ## Key repository files
 
 Below are the main project files, ordered by importance for running and understanding Lara.
 
 1. `auto_reply_priv.py` — the main application code and entry point. It contains the bot logic for reading incoming MeshCore PRIV messages, calling OpenWebUI, and sending replies back through the USB-connected MeshCore node.
 2. `lara_config.yaml` — runtime configuration for the MeshCore node, serial/COM settings, AI model parameters, node public keys, and behavior options.
-3. `requirements.txt` — Python dependencies required to install and run the project in a clean environment.
-4. `start_lara.bat` / `start_lara.ps1` — convenience startup scripts for Windows, so you can launch the bot with the recommended default settings.
-5. `AUTO_REPLY_USAGE_GUIDE.md` — detailed usage and configuration documentation for all available options.
-6. `.gitignore` — excludes local files, generated logs, the virtual environment, and other non-public runtime artifacts from the repository.
-7. `README.md` — this file, which explains the project goal, setup, running instructions, and troubleshooting.
-8. `.github/copilot-instructions.md` — repository metadata for Copilot guidance; not needed to run the project.
-9. Supporting docs (`PROGRESS.md`, `OPENWEBUI_API_ANALYSIS.md`, `IMPROVEMENTS_SUMMARY.md`, etc.) — useful for project history and analysis, but not required to run the bot.
+3. `requirements.txt` — pinned Python dependencies required to install and run the project in a clean environment.
+4. `requirements-dev.txt` — developer dependencies for tests and CI.
+5. `pyproject.toml` — package metadata for easy install and distribution.
+6. `start_lara.bat` / `start_lara.ps1` — convenience startup scripts for Windows.
+7. `AUTO_REPLY_USAGE_GUIDE.md` — detailed usage and configuration documentation for all available options.
+8. `.gitignore` — excludes local files, generated logs, the virtual environment, and other non-public runtime artifacts from the repository.
+9. `README.md` — this file, which explains the project goal, setup, running instructions, and troubleshooting.
+10. `CONTRIBUTING.md` / `CODE_OF_CONDUCT.md` — contribution guidelines and expected project conduct.
+11. `LICENSE` — repository license and permissions.
+
+Detailed analysis, test reports, and historical notes are now stored in `docs/reports/`.
+
 ### Recommended
 ```powershell
 start_lara.bat
