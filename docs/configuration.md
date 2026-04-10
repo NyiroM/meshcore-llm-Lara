@@ -80,4 +80,6 @@ Controls how Lara processes incoming messages and replies:
 
 Copy `lara_config.example.yaml` to `lara_config.yaml`, then update the placeholders with your device-specific values.
 
-Do not commit `lara_config.yaml` if it contains secrets or local paths.
+Do not commit `lara_config.yaml` if it contains secrets, API keys, or local file paths.
+
+If you want to preserve a shareable template, keep only `lara_config.example.yaml` under version control.

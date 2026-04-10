@@ -61,12 +61,14 @@ This repository contains the Lara CLI interface for MeshCore, including an AI-dr
    pip install -e .
    ```
 
-3. Configure `lara_config.yaml`:
+3. Copy `lara_config.example.yaml` to `lara_config.yaml` and update it with your values:
    - `radio.port` - your MeshCore COM port (default: COM6)
    - `ai.api_key` - OpenWebUI API key or token
    - `ai.model_id` - model name (for example `mistral-nemolatest-tuds-nlkl`)
    - `nodes.node_a.pubkey` and `nodes.node_b.pubkey` - device public keys
 
+> Do not commit `lara_config.yaml` if it contains secrets, API keys, or local paths.
+>
 > During testing, this project was validated using the `gemma4` model together with RAG handling. In principle, any AI model that Ollama supports through OpenWebUI can be used.
 
 ## Development and testing
@@ -96,8 +98,9 @@ Current unit tests include checks for:
 Below are the main project files, ordered by importance for running and understanding Lara.
 
 1. `auto_reply_priv.py` — the main application code and entry point. It contains the bot logic for reading incoming MeshCore PRIV messages, calling OpenWebUI, and sending replies back through the USB-connected MeshCore node.
-2. `lara_config.yaml` — runtime configuration for the MeshCore node, serial/COM settings, AI model parameters, node public keys, and behavior options.
-3. `requirements.txt` — pinned Python dependencies required to install and run the project in a clean environment.
+2. `lara_config.example.yaml` — example runtime configuration template for the MeshCore node, serial/COM settings, AI model parameters, node public keys, and behavior options.
+3. `lara_config.yaml` — the active runtime configuration file created from the example template.
+4. `requirements.txt` — pinned Python dependencies required to install and run the project in a clean environment.
 4. `requirements-dev.txt` — developer dependencies for tests and CI.
 5. `pyproject.toml` — package metadata for easy install and distribution.
 6. `start_lara.bat` / `start_lara.ps1` — convenience startup scripts for Windows.

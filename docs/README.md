@@ -8,7 +8,7 @@ This directory contains project documentation for `meshcore-llm-Lara`.
 - `architecture.md` — overview of the code structure, runtime flow, and major components.
 - `testing.md` — how to run tests and what the current unit tests cover.
 - `reports/` — archived test reports, analysis notes, and historical outputs.
-- `legacy/` — older or archived files preserved for reference.
+- `legacy/` — older or archived files preserved for reference; not primary documentation.
 
 ## How to use this folder
 
