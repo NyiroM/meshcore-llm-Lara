@@ -79,6 +79,16 @@ Run the test suite:
 pytest -q
 ```
 
+Current unit tests include checks for:
+- `check_port_available()` success when a COM port opens cleanly
+- `check_port_available()` failure when serial access raises an exception
+- `find_available_ports()` returning detected ports and prioritizing the preferred port
+- OpenWebUI health URL generation with default settings
+- OpenWebUI health URL normalization when a custom API URL is configured
+- `_is_openwebui_up()` reporting false when the health endpoint is unhealthy
+- `_wait_for_openwebui(timeout=0)` returning false when OpenWebUI is unavailable
+- `_start_openwebui()` avoiding a process launch when the autostart binary is not found
+
 ## Key repository files
 
 Below are the main project files, ordered by importance for running and understanding Lara.

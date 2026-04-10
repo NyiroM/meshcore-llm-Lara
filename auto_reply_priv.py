@@ -36,16 +36,14 @@ except ImportError:
     print("ERROR: meshcore library not found. Install: pip install meshcore")
     sys.exit(1)
 
-# ============================================================================
-# FIX: Force UTF-8 encoding for Windows console (handles emoji in logs)
-# ============================================================================
-if sys.platform == "win32":
+def force_utf8_console_output() -> None:
+    """Force UTF-8 encoding for the Windows console when running the bot."""
+    if sys.platform != "win32":
+        return
+
     import io
-    # Force UTF-8 for stderr (where logger outputs)
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
-    # Force UTF-8 for stdout too
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
-    # Also set environment variable for subprocess
     os.environ["PYTHONIOENCODING"] = "utf-8"
 
 CONFIG_PATH = "lara_config.yaml"
@@ -2476,6 +2474,7 @@ class AutoReplyBot:
 
 
 def main() -> None:
+    force_utf8_console_output()
     cfg = load_config()
     validate_config(cfg)
 
