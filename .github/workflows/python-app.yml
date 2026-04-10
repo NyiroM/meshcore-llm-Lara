@@ -25,5 +25,5 @@ jobs:
           pip install -r requirements-dev.txt
       - name: Static check
         run: python -m py_compile auto_reply_priv.py
-      - name: Run tests
-        run: pytest -q
+      - name: Run tests with coverage
+        run: pytest
