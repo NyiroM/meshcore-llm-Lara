@@ -61,8 +61,21 @@ This repository contains the Lara CLI interface for MeshCore, including an AI-dr
    - `ai.model_id` - model name (for example `mistral-nemolatest-tuds-nlkl`)
    - `nodes.node_a.pubkey` and `nodes.node_b.pubkey` - device public keys
 
-## Run
+> During testing, this project was validated using the `gemma4` model together with RAG handling. In principle, any AI model that Ollama supports through OpenWebUI can be used.
 
+## Key repository files
+
+Below are the main project files, ordered by importance for running and understanding Lara.
+
+1. `auto_reply_priv.py` — the main application code and entry point. It contains the bot logic for reading incoming MeshCore PRIV messages, calling OpenWebUI, and sending replies back through the USB-connected MeshCore node.
+2. `lara_config.yaml` — runtime configuration for the MeshCore node, serial/COM settings, AI model parameters, node public keys, and behavior options.
+3. `requirements.txt` — Python dependencies required to install and run the project in a clean environment.
+4. `start_lara.bat` / `start_lara.ps1` — convenience startup scripts for Windows, so you can launch the bot with the recommended default settings.
+5. `AUTO_REPLY_USAGE_GUIDE.md` — detailed usage and configuration documentation for all available options.
+6. `.gitignore` — excludes local files, generated logs, the virtual environment, and other non-public runtime artifacts from the repository.
+7. `README.md` — this file, which explains the project goal, setup, running instructions, and troubleshooting.
+8. `.github/copilot-instructions.md` — repository metadata for Copilot guidance; not needed to run the project.
+9. Supporting docs (`PROGRESS.md`, `OPENWEBUI_API_ANALYSIS.md`, `IMPROVEMENTS_SUMMARY.md`, etc.) — useful for project history and analysis, but not required to run the bot.
 ### Recommended
 ```powershell
 start_lara.bat
