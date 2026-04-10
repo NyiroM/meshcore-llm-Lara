@@ -8,6 +8,8 @@ AI-powered MeshCore message bot with OpenWebUI integration.
 
 This project provides a command-line interface around a MeshCore client node to automate and manage message replies using AI. "Lara" acts as a bridge between a USB-connected MeshCore device and an OpenWebUI-powered language model, enabling fast, contextual, and chat-like automation for encrypted mesh messages.
 
+> This codebase was developed with the support of AI-assisted tooling to help refine implementation, documentation, and testing.
+
 ## What is MeshCore?
 
 MeshCore is a mesh networking client platform designed for peer-to-peer encrypted communication over wireless mesh links. No internet or GSM network required. A MeshCore node can route messages across a network of devices, maintain secure channels, and deliver messages as encrypted private packets. Check out https://meshcore.co.uk/
