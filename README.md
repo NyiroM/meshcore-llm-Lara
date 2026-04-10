@@ -109,6 +109,8 @@ Below are the main project files, ordered by importance for running and understa
 
 Detailed analysis, test reports, and historical notes are now stored in `docs/reports/`.
 
+See `docs/README.md` for the full documentation structure and deeper project references.
+
 ### Recommended
 ```powershell
 start_lara.bat
