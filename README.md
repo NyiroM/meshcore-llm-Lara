@@ -1,5 +1,7 @@
 ﻿# meshcore-llm-Lara
 
+[![CI](https://github.com/ZionBurns/meshcore-llm-Lara/actions/workflows/python-app.yml/badge.svg)](https://github.com/ZionBurns/meshcore-llm-Lara/actions/workflows/python-app.yml) [![Python Version](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org) [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 AI-powered MeshCore message bot with OpenWebUI integration.
 
 ## Project Goal

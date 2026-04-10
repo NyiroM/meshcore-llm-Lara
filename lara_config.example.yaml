@@ -1,0 +1,67 @@
+radio:
+  port: "COM6"
+  baud: 115200
+  room_name: "YOUR_ROOM_NAME"
+  node_name: "YourNodeName"
+  room_key: "YOUR_ROOM_KEY"
+
+nodes:
+  node_a:
+    name: "BotNode"
+    port: "COM6"
+    pubkey: "YOUR_NODE_A_PUBKEY"
+    active_instance: true
+  node_b:
+    name: "RemoteNode"
+    port: "COM4"
+    pubkey: "YOUR_NODE_B_PUBKEY"
+
+node_test:
+  timeout_seconds: 8
+  message: "What is your favorite hobby and why? Keep your response to one sentence."
+  direction: "a_to_b"
+  allow_public_forwarding: false
+  allow_reverse_direction: true
+
+ai:
+  api_url: "http://127.0.0.1:8080/api/chat/completions"
+  api_key: "YOUR_OPENWEBUI_API_KEY"
+  model_id: "mistral-nemolatest-tuds-nlkl"
+  memory_limit: 15
+  streaming: false
+  openwebui_autostart: true
+  openwebui_data_dir: "C:/path/to/openwebui/data"
+  openwebui_ollama_url: "http://127.0.0.1:11434"
+  openwebui_cors_allow_origin: "http://localhost:8080"
+  openwebui_user_agent: "OpenWebUI-User"
+  openwebui_python: "3.11"
+  openwebui_log_file: "openwebui.log"
+  openwebui_startup_timeout: 180
+  webui_webhook_url: "http://127.0.0.1:8080/api/chat/messages"
+  webui_webhook_disable_on_405: true
+
+bot_behavior:
+  active: true
+  reply_to_all: true
+  chunk_chars: 145
+  max_chunks: 3
+  debug_auto_reply: false
+  simulate_metadata: false
+  allow_self_processing: false
+  circular_max_iterations: 3
+  use_library_polling: true
+  library_poll_interval_sec: 1.0
+  monitor_restart_min_interval_sec: 2.5
+  batch_enabled: true
+  batch_min_messages: 3
+  batch_time_window_sec: 2.0
+
+network:
+  ws_port: 8765
+
+system:
+  log_level: "INFO"
+  enable_file_logging: true
+  health_enabled: true
+  health_host: "127.0.0.1"
+  health_port: 8766
